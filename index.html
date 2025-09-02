@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Auto Reporte Climático - Lambayeque</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Roboto', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .app-container {
+            max-width: 100%;
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 10px;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider { background-color: #4f46e5; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .main-button {
+            transition: all 0.3s ease;
+            min-height: 48px;
+            font-size: 16px;
+        }
+        .main-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3);
+        }
+        #result-card {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', Courier, monospace;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.7s ease-in-out;
+            opacity: 0;
+        }
+        #result-card.visible {
+            max-height: 800px;
+            opacity: 1;
+        }
+        .copy-button { 
+            transition: background-color 0.2s ease;
+            min-height: 40px;
+        }
+        .copy-button:hover { background-color: #38a169; }
+        #header-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+        }
+        .emergency-description {
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.4s ease-in-out;
+            opacity: 0;
+        }
+        .emergency-description.visible {
+            max-height: 200px;
+            opacity: 1;
+            margin-top: 1rem;
+        }
+        
+        /* Mobile optimizations */
+        input, select, textarea, button {
+            font-size: 16px !important;
+            min-height: 44px;
+        }
+        
+        .mobile-input {
+            -webkit-appearance: none;
+            border-radius: 8px;
+        }
+        
+        /* Custom Modal Styles */
+        .custom-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .custom-modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .custom-modal {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            padding: 0;
+            transform: scale(0.8) translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .custom-modal-overlay.show .custom-modal {
+            transform: scale(1) translateY(0);
+        }
+        
+        .custom-modal-header {
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 16px 16px 0 0;
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .custom-modal-body {
+            padding: 1.5rem;
+            color: #374151;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+        
+        .custom-modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+        
+        .custom-modal-button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-height: 44px;
+        }
+        
+        .custom-modal-button:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+
+        /* Schedule item styles */
+        .schedule-item {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .schedule-item.active {
+            border-color: #4f46e5;
+            background: #f8fafc;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Custom Modal -->
+    <div id="custom-modal-overlay" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <div class="custom-modal-header">
+                <i class="fas fa-info-circle mr-2"></i>
+                <span>Sistema de Notificaciones</span>
+            </div>
+            <div class="custom-modal-body" id="custom-modal-message">
+                <!-- Message content will be inserted here -->
+            </div>
+            <div class="custom-modal-footer">
+                <button class="custom-modal-button" onclick="closeCustomModal()">
+                    <i class="fas fa-check mr-2"></i>Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Modal -->
+    <div id="contact-modal" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <div class="custom-modal-header">
+                <i class="fas fa-user-plus mr-2"></i>
+                <span>Agregar Contacto</span>
+            </div>
+            <div class="custom-modal-body">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nombre:</label>
+                        <input type="text" id="contact-name" class="w-full p-3 border border-gray-300 rounded-md mobile-input">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono:</label>
+                        <input type="tel" id="contact-phone" class="w-full p-3 border border-gray-300 rounded-md mobile-input" placeholder="+51 999 999 999">
+                    </div>
+                </div>
+            </div>
+            <div class="custom-modal-footer">
+                <button class="custom-modal-button" onclick="saveContact()" style="background: #10b981;">
+                    <i class="fas fa-save mr-2"></i>Guardar
+                </button>
+                <button class="custom-modal-button" onclick="closeContactModal()" style="background: #6b7280;">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <div class="glass-card">
+            <img id="header-image" src="https://pbs.twimg.com/profile_images/1830698081131659264/e9LvnINR_400x400.jpg" alt="Vista panorámica de Lambayeque">
+            
+            <div class="p-4">
+                <header class="text-center mb-6">
+                    <h1 class="text-xl font-bold text-gray-800">Auto Reporte Climático</h1>
+                    <p class="text-gray-600 text-sm mt-1">Programación automática para WhatsApp - 38 Distritos</p>
+                </header>
+
+                <div class="space-y-4">
+                    <!-- API Key Input -->
+                    <div>
+                        <label for="api-key-input" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-key mr-2"></i>API Key OpenWeatherMap:
+                        </label>
+                        <input type="text" id="api-key-input" class="w-full p-3 bg-white border border-gray-300 rounded-lg mobile-input" value="5cdb543239a138ad764aec8fe322c10c">
+                    </div>
+                
+                    <!-- District Selector -->
+                    <div>
+                        <label for="district-select" class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-map-marker-alt mr-2"></i>Distrito (38 disponibles):
+                        </label>
+                        <select id="district-select" class="w-full p-3 bg-white border border-gray-300 rounded-lg mobile-input">
+                            <option value="">Seleccionar distrito...</option>
+                        </select>
+                    </div>
+
+                    <!-- Send To Section -->
+                    <div class="bg-white/80 p-4 rounded-lg border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-paper-plane mr-2"></i>Enviar a:
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-3">
+                                <input type="radio" id="send-contact" name="send-method" value="contact" class="w-4 h-4 text-indigo-600">
+                                <label for="send-contact" class="text-sm font-medium text-gray-700">Contacto guardado</label>
+                            </div>
+                            <div id="contact-selector" class="ml-7 space-y-2 hidden">
+                                <select id="saved-contacts" class="w-full p-2 bg-white border border-gray-300 rounded-md mobile-input">
+                                    <option value="">Seleccionar contacto...</option>
+                                </select>
+                                <button id="add-contact-btn" class="text-sm text-indigo-600 hover:text-indigo-800 py-2">
+                                    <i class="fas fa-plus mr-1"></i>Agregar nuevo contacto
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <input type="radio" id="send-share" name="send-method" value="share" class="w-4 h-4 text-indigo-600" checked>
+                                <label for="send-share" class="text-sm font-medium text-gray-700">Usar compartir del sistema</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Emergency/Occurrence Section -->
+                    <div class="bg-white p-3 rounded-lg border border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <label for="emergency-switch" class="font-medium text-gray-700 flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Emergencia/Ocurrencia
+                            </label>
+                            <label class="switch">
+                                <input type="checkbox" id="emergency-switch">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div id="emergency-description" class="emergency-description">
+                            <label for="emergency-text" class="block text-sm font-medium text-red-700 mb-2">
+                                <i class="fas fa-edit mr-1"></i>Descripción:
+                            </label>
+                            <textarea 
+                                id="emergency-text" 
+                                rows="3" 
+                                class="w-full p-3 border border-red-300 rounded-lg mobile-input resize-none" 
+                                placeholder="Describa la emergencia (ej: Inundación, corte de energía, etc.)">
+                            </textarea>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Scheduling Section -->
+                    <div class="bg-white/80 p-4 rounded-lg border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-calendar-alt mr-2"></i>Programación Avanzada
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="repeat-mode" class="block text-sm font-medium text-gray-700 mb-1">Repetición:</label>
+                                <select id="repeat-mode" class="w-full p-3 bg-white border border-gray-300 rounded-md mobile-input">
+                                    <option value="once">No repetir (una sola vez)</option>
+                                    <option value="hourly">Cada hora</option>
+                                    <option value="daily">Diario</option>
+                                    <option value="weekdays">De lunes a viernes</option>
+                                    <option value="weekly">Semanal (elegir día)</option>
+                                    <option value="monthly">Mensual (elegir día del mes)</option>
+                                </select>
+                            </div>
+                            
+                            <div id="date-container">
+                                <label for="report-date" class="block text-sm font-medium text-gray-700 mb-1">Fecha:</label>
+                                <input type="date" id="report-date" class="w-full p-3 border border-gray-300 rounded-md mobile-input">
+                            </div>
+                            
+                            <div>
+                                <label for="report-time" class="block text-sm font-medium text-gray-700 mb-1">Hora:</label>
+                                <input type="time" id="report-time" class="w-full p-3 border border-gray-300 rounded-md mobile-input">
+                            </div>
+
+                            <!-- Weekly Day Selector -->
+                            <div id="weekly-day-container" class="hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Día de la semana:</label>
+                                <select id="weekly-day" class="w-full p-3 bg-white border border-gray-300 rounded-md mobile-input">
+                                    <option value="1">Lunes</option>
+                                    <option value="2">Martes</option>
+                                    <option value="3">Miércoles</option>
+                                    <option value="4">Jueves</option>
+                                    <option value="5">Viernes</option>
+                                    <option value="6">Sábado</option>
+                                    <option value="0">Domingo</option>
+                                </select>
+                            </div>
+
+                            <!-- Monthly Day Selector -->
+                            <div id="monthly-day-container" class="hidden">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Día del mes:</label>
+                                <select id="monthly-day" class="w-full p-3 bg-white border border-gray-300 rounded-md mobile-input">
+                                    <!-- Options 1-31 will be populated by JavaScript -->
+                                </select>
+                            </div>
+
+                            <!-- Prior Notification -->
+                            <div class="bg-blue-50 p-3 rounded-lg">
+                                <div class="flex items-center justify-between mb-2">
+                                    <label for="notification-switch" class="font-medium text-gray-700 flex items-center">
+                                        <i class="fas fa-bell mr-2 text-blue-500"></i>Notificación previa
+                                    </label>
+                                    <label class="switch">
+                                        <input type="checkbox" id="notification-switch">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div id="notification-config" class="hidden">
+                                    <label for="notification-minutes" class="block text-sm text-gray-600 mb-1">Minutos antes:</label>
+                                    <input type="number" id="notification-minutes" min="1" max="1440" value="15" class="w-full p-2 border border-gray-300 rounded-md mobile-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Schedules Section -->
+                    <div id="active-schedules" class="bg-white/80 p-4 rounded-lg border border-gray-200 hidden">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-clock mr-2"></i>Programaciones Activas
+                        </h3>
+                        <div id="schedules-list" class="space-y-2">
+                            <!-- Active schedules will be populated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 space-y-3">
+                    <button id="schedule-button" class="main-button w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-md flex items-center justify-center">
+                        <i class="fas fa-clock mr-3 text-xl"></i>
+                        <span>Programar Envío Automático</span>
+                    </button>
+                    
+                    <button id="generate-button" class="main-button w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg shadow-md flex items-center justify-center">
+                        <i class="fas fa-share-alt mr-3 text-xl"></i>
+                        <span>Generar y Enviar Ahora</span>
+                    </button>
+                </div>
+
+                <div id="result-container" class="mt-6">
+                    <div id="result-card" class="bg-gray-800 text-white p-4 rounded-lg shadow-inner">
+                        <div class="flex justify-between items-center mb-2">
+                             <h3 class="text-lg font-semibold">Mensaje Generado</h3>
+                             <button id="copy-button" class="copy-button bg-green-600 text-white px-3 py-1 rounded-md text-sm">
+                                 <i class="fas fa-copy mr-1"></i>Copiar
+                             </button>
+                        </div>
+                        <p id="result-text"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Complete 38 Districts of Lambayeque with accurate coordinates
+        const districts = [
+            { name: "Cañaris", province: "Ferreñafe", lat: -6.048, lon: -79.263 },
+            { name: "Cayaltí", province: "Chiclayo", lat: -6.903, lon: -79.565 },
+            { name: "Chiclayo", province: "Chiclayo", lat: -6.771, lon: -79.840 },
+            { name: "Chóchope", province: "Lambayeque", lat: -6.166, lon: -79.584 },
+            { name: "Chongoyape", province: "Chiclayo", lat: -6.645, lon: -79.388 },
+            { name: "Eten", province: "Chiclayo", lat: -6.911, lon: -79.865 },
+            { name: "Eten Puerto", province: "Chiclayo", lat: -6.918, lon: -79.891 },
+            { name: "Ferreñafe", province: "Ferreñafe", lat: -6.639, lon: -79.791 },
+            { name: "Íllimo", province: "Lambayeque", lat: -6.495, lon: -79.918 },
+            { name: "Incahuasi", province: "Ferreñafe", lat: -6.223, lon: -79.324 },
+            { name: "Jayanca", province: "Lambayeque", lat: -6.392, lon: -79.823 },
+            { name: "José Leonardo Ortiz", province: "Chiclayo", lat: -6.757, lon: -79.839 },
+            { name: "La Victoria", province: "Chiclayo", lat: -6.787, lon: -79.833 },
+            { name: "Lagunas", province: "Chiclayo", lat: -6.697, lon: -79.578 },
+            { name: "Lambayeque", province: "Lambayeque", lat: -6.708, lon: -79.905 },
+            { name: "Manuel Antonio Mesones Muro", province: "Ferreñafe", lat: -6.591, lon: -79.664 },
+            { name: "Móchumí", province: "Lambayeque", lat: -6.550, lon: -79.902 },
+            { name: "Monsefú", province: "Chiclayo", lat: -6.877, lon: -79.868 },
+            { name: "Mórrope", province: "Lambayeque", lat: -6.539, lon: -80.015 },
+            { name: "Motupe", province: "Lambayeque", lat: -6.155, lon: -79.718 },
+            { name: "Nueva Arica", province: "Chiclayo", lat: -6.829, lon: -79.336 },
+            { name: "Olmos", province: "Lambayeque", lat: -5.986, lon: -79.742 },
+            { name: "Oyotún", province: "Chiclayo", lat: -6.852, lon: -79.298 },
+            { name: "Pacora", province: "Lambayeque", lat: -6.442, lon: -79.843 },
+            { name: "Pátapo", province: "Chiclayo", lat: -6.733, lon: -79.620 },
+            { name: "Picsi", province: "Chiclayo", lat: -6.712, lon: -79.791 },
+            { name: "Pimentel", province: "Chiclayo", lat: -6.837, lon: -79.934 },
+            { name: "Pítipo", province: "Ferreñafe", lat: -6.505, lon: -79.661 },
+            { name: "Pomalca", province: "Chiclayo", lat: -6.764, lon: -79.771 },
+            { name: "Pucalá", province: "Chiclayo", lat: -6.751, lon: -79.628 },
+            { name: "Pueblo Nuevo", province: "Ferreñafe", lat: -6.646, lon: -79.821 },
+            { name: "Reque", province: "Chiclayo", lat: -6.857, lon: -79.824 },
+            { name: "Salas", province: "Lambayeque", lat: -6.216, lon: -79.593 },
+            { name: "San José", province: "Lambayeque", lat: -6.789, lon: -79.967 },
+            { name: "Santa Rosa", province: "Chiclayo", lat: -6.901, lon: -79.919 },
+            { name: "Saña", province: "Chiclayo", lat: -6.920, lon: -79.587 },
+            { name: "Tumán", province: "Chiclayo", lat: -6.756, lon: -79.704 },
+            { name: "Túcume", province: "Lambayeque", lat: -6.511, lon: -79.851 }
+        ];
+
+        // Global variables for scheduling system
+        let activeSchedules = JSON.parse(localStorage.getItem('weatherSchedules') || '[]');
+        let savedContacts = JSON.parse(localStorage.getItem('savedContacts') || '[]');
+        let scheduleCheckInterval;
+
+        // Get DOM elements
+        const apiKeyInput = document.getElementById('api-key-input');
+        const districtSelect = document.getElementById('district-select');
+        const emergencySwitch = document.getElementById('emergency-switch');
+        const emergencyDescription = document.getElementById('emergency-description');
+        const emergencyText = document.getElementById('emergency-text');
+        const generateButton = document.getElementById('generate-button');
+        const scheduleButton = document.getElementById('schedule-button');
+        const resultText = document.getElementById('result-text');
+        const resultCard = document.getElementById('result-card');
+        const copyButton = document.getElementById('copy-button');
+        const repeatMode = document.getElementById('repeat-mode');
+        const dateContainer = document.getElementById('date-container');
+        const reportDateInput = document.getElementById('report-date');
+        const reportTimeInput = document.getElementById('report-time');
+        const weeklyDayContainer = document.getElementById('weekly-day-container');
+        const monthlyDayContainer = document.getElementById('monthly-day-container');
+        const weeklyDay = document.getElementById('weekly-day');
+        const monthlyDay = document.getElementById('monthly-day');
+        const notificationSwitch = document.getElementById('notification-switch');
+        const notificationConfig = document.getElementById('notification-config');
+        const notificationMinutes = document.getElementById('notification-minutes');
+        const sendContactRadio = document.getElementById('send-contact');
+        const sendShareRadio = document.getElementById('send-share');
+        const contactSelector = document.getElementById('contact-selector');
+        const savedContactsSelect = document.getElementById('saved-contacts');
+        const addContactBtn = document.getElementById('add-contact-btn');
+        const activeSchedulesDiv = document.getElementById('active-schedules');
+        const schedulesListDiv = document.getElementById('schedules-list');
+
+        // Initialize app
+        function initializeApp() {
+            console.log('Inicializando aplicación completa...');
+            populateDistricts();
+            populateMonthlyDays();
+            loadSavedContacts();
+            updateActiveSchedulesDisplay();
+            setDefaultDateTime();
+            setupEventListeners();
+            startScheduleChecker();
+            
+            // Request notification permission
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+            
+            console.log('Aplicación inicializada correctamente con todas las funcionalidades');
+        }
+
+        // Populate districts dropdown
+        function populateDistricts() {
+            console.log('Poblando 38 distritos...');
+            districts.sort((a,b) => a.name.localeCompare(b.name)).forEach(district => {
+                const option = document.createElement('option');
+                option.value = district.name;
+                option.textContent = `${district.name} (${district.province})`;
+                districtSelect.appendChild(option);
+            });
+            console.log(`${districts.length} distritos agregados correctamente`);
+        }
+
+        // Populate monthly days (1-31)
+        function populateMonthlyDays() {
+            for (let i = 1; i <= 31; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = i;
+                monthlyDay.appendChild(option);
+            }
+        }
+
+        // Set default date and time
+        function setDefaultDateTime() {
+            const now = new Date();
+            reportDateInput.value = now.toISOString().split('T')[0];
+            reportTimeInput.value = now.toTimeString().split(' ')[0].substring(0, 5);
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            console.log('Configurando todos los event listeners...');
+            
+            repeatMode.addEventListener('change', handleRepeatModeChange);
+            emergencySwitch.addEventListener('change', handleEmergencySwitch);
+            notificationSwitch.addEventListener('change', handleNotificationSwitch);
+            sendContactRadio.addEventListener('change', handleSendMethodChange);
+            sendShareRadio.addEventListener('change', handleSendMethodChange);
+            generateButton.addEventListener('click', generateAndSendNow);
+            scheduleButton.addEventListener('click', scheduleReport);
